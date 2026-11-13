@@ -1,0 +1,19 @@
+# Render Blueprint: deploys the game server publicly (cross-network bonus).
+# Players open https://<service-name>.onrender.com in any browser and play over WebSocket.
+services:
+  - type: web
+    name: openagar
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx gulp build
+    startCommand: node bin/server/server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # The server does not need the Electron binary (~100 MB); skip its download.
+      - key: ELECTRON_SKIP_BINARY_DOWNLOAD
+        value: "1"
+      # Render only routes the HTTP port ($PORT); keep the raw TCP listener local.
+      - key: TCP_HOST
+        value: "127.0.0.1"

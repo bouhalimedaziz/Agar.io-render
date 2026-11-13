@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Meta Properties -->
+    <meta charset="UTF-8">
+    <title>Open Agar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css" />
+    <!-- Audio -->
+    <audio id="split_cell" src="audio/split.mp3"></audio>
+    <audio id="spawn_cell" src="audio/spawn.mp3"></audio>
+</head>
+<body>
+    <div id="gameAreaWrapper">
+        <div id="status"><span class="title">Leaderboard</span></div>
+        <div class="chatbox" id="chatbox">
+            <ul id="chatList" class="chat-list"></ul>
+            <input id="chatInput" type="text" class="chat-input" placeholder="Chat here..." maxlength="35" />
+        </div>
+        <div id="mobile">
+           <input type="image" id="split" class="split" src="img/split.png" alt="splitBtn">
+           <input type="image" id="feed" class="feed" src="img/feed.png" alt="feedBtn">
+        </div>
+        <div id="gameHud" class="game-hud is-hidden">
+            <span id="gameRoomLabel" class="game-room-label"></span>
+            <button id="gameStopButton" type="button" class="ghost-button is-hidden">Stop match</button>
+            <button id="gameLeaveButton" type="button" class="ghost-button">Leave room</button>
+        </div>
+        <canvas tabindex="1" id="cvs"></canvas>
+    </div>
+
+    <div id="appRoot">
+        <section id="authScreen" class="screen">
+            <div class="panel panel--auth">
+                <h1 class="brand">Open Agar</h1>
+                <p class="tagline">Sign in to keep your name, or jump in as a guest.</p>
+
+                <div class="tabs" role="tablist" aria-label="Account">
+                    <button id="loginTab" type="button" class="tab is-active" role="tab" aria-selected="true">Log in</button>
+                    <button id="registerTab" type="button" class="tab" role="tab" aria-selected="false">Register</button>
+                </div>
+
+                <form id="loginForm" class="stack-form" novalidate>
+                    <label class="field">Username
+                        <input id="loginUsername" name="username" type="text" autocomplete="username" maxlength="20" autofocus>
+                    </label>
+                    <label class="field">Password
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="128">
+                    </label>
+                    <button id="loginButton" type="submit" class="primary-button">Log in</button>
+                </form>
+
+                <form id="registerForm" class="stack-form is-hidden" novalidate>
+                    <label class="field">Username
+                        <input id="registerUsername" name="username" type="text" autocomplete="username" maxlength="20">
+                    </label>
+                    <label class="field">Password
+                        <input id="registerPassword" name="password" type="password" autocomplete="new-password" maxlength="128">
+                    </label>
+                    <label class="field">Confirm password
+                        <input id="registerConfirm" name="confirm" type="password" autocomplete="new-password" maxlength="128">
+                    </label>
+                    <button id="registerButton" type="submit" class="primary-button">Create account</button>
+                </form>
+
+                <div class="divider"><span>or play as a guest</span></div>
+
+                <form id="guestForm" class="guest-form" novalidate>
+                    <input id="guestNameInput" name="guestName" type="text" maxlength="25" placeholder="Guest name" autocomplete="nickname">
+                    <button id="guestButton" type="submit" class="secondary-button">Continue</button>
+                </form>
+
+                <p id="authError" class="form-error" role="alert"></p>
+
+                <div class="auth-footer">
+                    <button id="quickPlayButton" type="button" class="link-button">Quick play</button>
+                    <button id="spectateButton" type="button" class="link-button">Spectate</button>
+                    <button id="authSettingsButton" type="button" class="link-button">Settings</button>
+                    <button id="instructionsButton" type="button" class="link-button">How to play</button>
+                </div>
+
+                <div id="settings" class="collapse-panel">
+                    <h3>Settings</h3>
+                    <ul class="check-list">
+                        <li><label><input id="visBord" type="checkbox">Show border</label></li>
+                        <li><label><input id="showMass" type="checkbox">Show mass</label></li>
+                        <li><label><input id="continuity" type="checkbox">Continue moving when the mouse is off-screen</label></li>
+                        <li><label><input id="roundFood" type="checkbox" checked>Rounded food</label></li>
+                    </ul>
+                </div>
+
+                <div id="instructions" class="collapse-panel">
+                    <h3>How to play</h3>
+                    <ul class="check-list">
+                        <li>Move your mouse to steer your cell.</li>
+                        <li>Eat food and smaller players to grow.</li>
+                        <li>Press <b>W</b> to feed mass and <b>Space</b> to split.</li>
+                        <li>Join a room, ready up and wait for the owner to start.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="lobbyScreen" class="screen is-hidden">
+            <div class="panel panel--wide">
+                <header class="app-header">
+                    <div>
+                        <h2>Lobby</h2>
+                        <p id="lobbyIdentity" class="muted"></p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="refreshRoomsButton" type="button" class="secondary-button">Refresh</button>
+                        <button id="logoutButton" type="button" class="ghost-button">Log out</button>
+                    </div>
+                </header>
+
+                <div class="lobby-toolbar">
+                    <form id="createRoomForm" class="inline-form" novalidate>
+                        <input id="createRoomName" type="text" placeholder="New room name" maxlength="30">
+                        <select id="createRoomVisibility" aria-label="Room visibility">
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
+                        <button id="createRoomButton" type="submit" class="primary-button">Create room</button>
+                    </form>
+                    <form id="joinRoomForm" class="inline-form" novalidate>
+                        <input id="joinRoomCode" type="text" placeholder="Room code" maxlength="12">
+                        <button id="joinRoomButton" type="submit" class="secondary-button">Join by code</button>
+                    </form>
+                </div>
+
+                <p id="lobbyError" class="form-error" role="alert"></p>
+                <div id="roomsLoading" class="notice is-hidden">Loading rooms…</div>
+                <div id="roomsEmpty" class="notice is-hidden">No public rooms yet. Create the first one.</div>
+                <p id="roomsError" class="form-error" role="alert"></p>
+                <ul id="roomList" class="room-list"></ul>
+            </div>
+        </section>
+
+        <section id="roomScreen" class="screen is-hidden">
+            <div class="panel panel--wide">
+                <header class="app-header">
+                    <div>
+                        <h2 id="roomName">Room</h2>
+                        <p class="muted">
+                            <span id="roomMeta"></span>
+                            <span class="meta-separator">·</span>
+                            Code <b id="roomCode"></b>
+                        </p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="leaveRoomButton" type="button" class="ghost-button">Leave room</button>
+                    </div>
+                </header>
+
+                <p id="roomError" class="form-error" role="alert"></p>
+
+                <div id="roomCountdown" class="countdown is-hidden" role="status" aria-live="polite">
+                    <span id="roomCountdownValue">3</span>
+                    <small>Match starting…</small>
+                </div>
+
+                <div class="room-grid">
+                    <div class="room-main">
+                        <h3>Players <span id="roomPlayerCount" class="count-badge">0</span></h3>
+                        <ul id="roomPlayerList" class="room-roster"></ul>
+
+                        <h3>Spectators <span id="roomSpectatorCount" class="count-badge">0</span></h3>
+                        <ul id="roomSpectatorList" class="room-roster room-roster--spectators"></ul>
+                    </div>
+
+                    <aside class="room-side">
+                        <p id="roomHint" class="muted"></p>
+                        <button id="readyButton" type="button" class="primary-button">Ready up</button>
+                        <button id="startGameButton" type="button" class="primary-button is-hidden">Start match</button>
+                        <button id="stopGameButton" type="button" class="danger-button is-hidden">Stop match</button>
+
+                        <div id="roomSettings" class="collapse-panel is-hidden">
+                            <h3>Room settings</h3>
+                            <form id="roomSettingsForm" class="stack-form" novalidate>
+                                <label class="field">Name
+                                    <input id="settingName" type="text" maxlength="30">
+                                </label>
+                                <label class="field">Visibility
+                                    <select id="settingVisibility">
+                                        <option value="public">Public</option>
+                                        <option value="private">Private</option>
+                                    </select>
+                                </label>
+                                <label class="field">Max players
+                                    <input id="settingMaxPlayers" type="number" min="1" max="50" step="1">
+                                </label>
+                                <div class="field-row">
+                                    <label class="field">Map width
+                                        <input id="settingMapWidth" type="number" min="1000" max="20000" step="100">
+                                    </label>
+                                    <label class="field">Map height
+                                        <input id="settingMapHeight" type="number" min="1000" max="20000" step="100">
+                                    </label>
+                                </div>
+                                <div class="field-row">
+                                    <label class="field">Time limit (min)
+                                        <input id="settingTimeLimit" type="number" min="0" step="1">
+                                    </label>
+                                    <label class="field">Score limit
+                                        <input id="settingScoreLimit" type="number" min="0" step="1">
+                                    </label>
+                                </div>
+                                <button id="saveSettingsButton" type="submit" class="secondary-button">Save settings</button>
+                                <button id="deleteRoomButton" type="button" class="danger-button">Delete room</button>
+                            </form>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="gameOverOverlay" class="overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
+        <div class="overlay-card">
+            <h2 id="gameOverTitle">Match over</h2>
+            <p id="gameOverSubtitle" class="muted"></p>
+            <ol id="gameOverScores" class="score-list"></ol>
+            <div class="overlay-actions">
+                <button id="returnToLobbyButton" type="button" class="primary-button is-hidden">Return to room</button>
+                <p id="returnToLobbyHint" class="muted is-hidden">Waiting for the room owner to return to the lobby…</p>
+                <button id="leaveAfterGameButton" type="button" class="ghost-button">Leave room</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="connectionStatus" class="connection-status connection-status--hidden" role="status" aria-live="polite" aria-hidden="true"></div>
+    <!-- JS -->
+    <script src="vendor/jquery-2.2.0.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
